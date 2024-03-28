@@ -40,7 +40,7 @@ def sql_connection():
 
 
 # Function to create PDF
-def create_pdf(filename, title, table1, table2, table3, table4, table5, table6):
+def create_pdf(filename, title, table1, table2, table3, table4, table5, table6, table7, table8):
     doc = SimpleDocTemplate(filename, pagesize=letter)
     elements = []
 
@@ -61,7 +61,10 @@ def create_pdf(filename, title, table1, table2, table3, table4, table5, table6):
             [['COST ESTIMATES']] +
             table5 +
             [['ALCOHOL-RELATED CRASHES']] +
-            table6)
+            table6 +
+            table7 +
+            [['PEDESTRIAN, MOTORCYCLE AND BICYCLE FATALITIES']] +
+            table8)
     table = Table(data)
     table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#98d434")),  # Change color here
@@ -101,7 +104,13 @@ def create_pdf(filename, title, table1, table2, table3, table4, table5, table6):
         ('SPAN', (0, 25), (-1, 25)),
         ('BACKGROUND', (0, 25), (-1, 25), colors.HexColor("#98d434")),
 
-        ('ALIGN', (0, 26), (0, 33), 'LEFT'),
+        ('ALIGN', (0, 26), (0, 36), 'LEFT'),
+
+        ('ALIGN', (0, 37), (-1, 37), 'CENTER'),
+        ('SPAN', (0, 37), (-1, 37)),
+        ('BACKGROUND', (0, 37), (-1, 37), colors.HexColor("#98d434")),
+
+        ('ALIGN', (0, 38), (0, 43), 'LEFT'),
     ]))
 
     elements.append(table)
@@ -225,7 +234,13 @@ if __name__ == '__main__':
 
     for parish in parish_dict.keys():
         df = dwi_arrests_df[dwi_arrests_df['Parish'] == parish]
-        #parish_dict[parish]['cost_estimate'] = create_tables.create_dwi_arrests_table(df, years)
+        parish_dict[parish]['dwi_arrests'] = create_tables.create_dwi_arrests_table(df, years)
+
+    ped_motor_bike_df = create_df.create_ped_motor_bike_df(engine_db, start_year, end_year)
+
+    for parish in parish_dict.keys():
+        df = ped_motor_bike_df[ped_motor_bike_df['Parish'] == parish]
+        parish_dict[parish]['ped_motor_bike'] = create_tables.create_ped_motor_bike_table(df, years)
 
     # Create Parish_PDFs folder if it doesn't exist
     if not os.path.exists('Parish_PDFs'):
@@ -239,7 +254,9 @@ if __name__ == '__main__':
         parish_4 = parish_dict[parish]['safety_belt']
         parish_5 = parish_dict[parish]['cost_estimate']
         parish_6 = parish_dict[parish]['alc_crash']
-        create_pdf(f'Parish_PDFs/{parish}.pdf', parish, parish_1, parish_2, parish_3, parish_4, parish_5, parish_6)
+        parish_7 = parish_dict[parish]['dwi_arrests']
+        parish_8 = parish_dict[parish]['ped_motor_bike']
+        create_pdf(f'Parish_PDFs/{parish}.pdf', parish, parish_1, parish_2, parish_3, parish_4, parish_5, parish_6, parish_7, parish_8)
 
     # Concatenate PDFs
     pdf_merger = PdfMerger()

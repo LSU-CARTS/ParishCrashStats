@@ -269,11 +269,77 @@ def create_alc_crash_df(engine, start_year, end_year):
 
 def create_dwi_arrests_df(engine, start_year, end_year):
     sql_query = f"""
-        SELECT count(*)
-        FROM FactCobra 
-        WHERE DWICode IN ('2', '3')
-        AND YEAR BETWEEN {start_year} AND {end_year}
-        AND Age BETWEEN 15 AND 24;
+        WITH A AS (
+            SELECT [Year] AS 'YEAR',
+              Parish,
+              SUM(CASE WHEN Age between 15 and 24 THEN 1 ELSE 0 END) AS 'NUMBER OF DWI ARRESTS INVOLVING DRIVERS AGES 15-24',
+              COUNT(*) AS 'NUMBER OF DWI ARRESTS INVOLVING ALL DRIVERS'
+            FROM FactCobra 
+            WHERE DWICode IN ('2', '3')
+            AND YEAR BETWEEN {start_year} AND {end_year}
+            GROUP BY Parish, [Year]
+        )
+        
+        SELECT A.YEAR,
+          A.PARISH AS 'Parish',
+          SUM(A.[NUMBER OF DWI ARRESTS INVOLVING DRIVERS AGES 15-24]) AS 'NUMBER OF DWI ARRESTS INVOLVING DRIVERS AGES 15-24',
+          SUM(A.[NUMBER OF DWI ARRESTS INVOLVING ALL DRIVERS]) AS 'NUMBER OF DWI ARRESTS INVOLVING ALL DRIVERS',
+          CONCAT(
+            CAST(SUM(A.[NUMBER OF DWI ARRESTS INVOLVING DRIVERS AGES 15-24]) * 100. / SUM(A.[NUMBER OF DWI ARRESTS INVOLVING ALL DRIVERS]) AS DECIMAL(10, 2)), 
+            '%' 
+          ) AS 'PERCENT OF DWI ARRESTS INVOLVING DRIVERS AGES 15-24'
+        FROM A 
+        GROUP BY PARISH, YEAR
+        ORDER BY Parish, YEAR;
+    """
+
+    return pd.read_sql_query(sql_query, engine)
+
+
+def create_ped_motor_bike_df(engine, start_year, end_year):
+    sql_query = f"""
+        WITH Fatalities AS (
+            SELECT FC.CrashYear AS Year,
+                FC.ParishCode,
+                SUM(CASE WHEN FP.BodyTypeCode IN ('300', '301') THEN 1 ELSE 0 END) AS MotorcycleFatalities,
+                SUM(CASE WHEN FP.PersonTypeCode = '200' THEN 1 ELSE 0 END) AS PedestrianFatalities,
+                SUM(CASE WHEN FP.PersonTypeCode = '100' THEN 1 ELSE 0 END) AS BicycleFatalities,
+                COUNT(DISTINCT FP.PersonPK) AS TotalFatalities
+            FROM dbo.FactCrash FC
+            INNER JOIN dbo.FactPerson FP ON FC.CrashPK = FP.CrashSK
+            WHERE FC.CrashYear BETWEEN {start_year} AND {end_year}
+            AND InjuryStatusCode = '100'
+            GROUP BY FC.CrashYear, FC.ParishCode
+        ),
+        ParishDescriptions AS (
+            SELECT 
+                ParishCode,
+                ParishDescription
+            FROM 
+                RefParish
+        )
+        SELECT F.Year AS 'YEAR',
+          SUM(F.MotorcycleFatalities) AS MotorcycleFatalities,
+          SUM(F.PedestrianFatalities) AS PedestrianFatalities,
+          SUM(F.BicycleFatalities) AS BicycleFatalities,
+          SUM(F.TotalFatalities) AS TotalFatalities,
+          CONCAT(
+            CAST(SUM(F.MotorcycleFatalities) * 100. / SUM(F.TotalFatalities) AS DECIMAL(10, 2)), 
+            '%'
+          ) AS MotorcycleFatalityPercentage,
+          CONCAT(
+            CAST(SUM(F.PedestrianFatalities) * 100. / SUM(F.TotalFatalities) AS DECIMAL(10, 2)), 
+            '%'
+          ) AS PedestrianFatalityPercentage,
+          CONCAT(
+            CAST(SUM(F.BicycleFatalities) * 100. / SUM(F.TotalFatalities) AS DECIMAL(10, 2)), 
+            '%'
+          ) AS BicycleFatalityPercentage,
+          PD.ParishDescription AS Parish
+        FROM Fatalities F
+        LEFT JOIN ParishDescriptions PD ON F.ParishCode = PD.ParishCode
+        GROUP BY F.Year, PD.ParishDescription
+        ORDER BY PD.ParishDescription, F.Year;
     """
 
     return pd.read_sql_query(sql_query, engine)

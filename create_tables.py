@@ -249,3 +249,86 @@ def create_alc_crash_table(parish_df, years):
             break
 
     return table
+
+
+def create_dwi_arrests_table(parish_df, years):
+    table = [[0 for _ in range(len(years) + 2)] for _ in range(3)]
+
+    # Create a dataframe to hold the missing years
+    missing_years_df = pd.DataFrame({'YEAR': years})
+
+    # Merge with the original dataframe to identify missing years
+    parish_df = pd.merge(missing_years_df, parish_df, on='YEAR', how='left')
+
+    numerical_columns = [
+        'NUMBER OF DWI ARRESTS INVOLVING DRIVERS AGES 15-24',
+        'NUMBER OF DWI ARRESTS INVOLVING ALL DRIVERS',
+    ]
+
+    parish_df[numerical_columns] = parish_df[numerical_columns].fillna(0)
+
+    parish_df['PERCENT OF DWI ARRESTS INVOLVING DRIVERS AGES 15-24'] = parish_df['PERCENT OF DWI ARRESTS INVOLVING DRIVERS AGES 15-24'].fillna('0.00%')
+
+    table[0][0] = 'NUMBER OF DWI ARRESTS INVOLVING DRIVERS AGES 15-24'
+    table[0][1:-1] = parish_df['NUMBER OF DWI ARRESTS INVOLVING DRIVERS AGES 15-24']
+    table[0][-1] = percent_change(parish_df, 'NUMBER OF DWI ARRESTS INVOLVING DRIVERS AGES 15-24', years[-2], years[-1])
+
+    table[1][0] = 'NUMBER OF DWI ARRESTS INVOLVING ALL DRIVERS'
+    table[1][1:-1] = parish_df['NUMBER OF DWI ARRESTS INVOLVING ALL DRIVERS']
+    table[1][-1] = percent_change(parish_df, 'NUMBER OF DWI ARRESTS INVOLVING ALL DRIVERS', years[-2], years[-1])
+
+    table[2][0] = 'PERCENT OF DWI ARRESTS INVOLVING DRIVERS AGES 15-24'
+    table[2][1:-1] = parish_df['PERCENT OF DWI ARRESTS INVOLVING DRIVERS AGES 15-24']
+    table[2][-1] = percent_change(parish_df, 'PERCENT OF DWI ARRESTS INVOLVING DRIVERS AGES 15-24', years[-2], years[-1])
+
+    return table
+
+
+def create_ped_motor_bike_table(parish_df, years):
+    table = [[0 for _ in range(len(years) + 2)] for _ in range(6)]
+
+    # Merge with the original dataframe to identify missing years
+    missing_years_df = pd.DataFrame({'YEAR': years})
+    parish_df = pd.merge(missing_years_df, parish_df, on='YEAR', how='left')
+
+    # Replace NaN values in numerical columns with 0
+    freq_cols = [
+        'MotorcycleFatalities',
+        'PedestrianFatalities',
+        'BicycleFatalities'
+    ]
+
+    rel_freq_cols = [
+        'MotorcycleFatalityPercentage',
+        'PedestrianFatalityPercentage',
+        'BicycleFatalityPercentage'
+    ]
+
+    parish_df[freq_cols] = parish_df[freq_cols].fillna(0)
+    parish_df[rel_freq_cols] = parish_df[rel_freq_cols].fillna('0.00%')
+
+    table[0][0] = 'NUMBER OF PEDESTRIAN FATALITIES'
+    table[0][1:-1] = parish_df['PedestrianFatalities']
+    table[0][-1] = percent_change(parish_df, 'PedestrianFatalities', years[-2], years[-1])
+
+    table[1][0] = 'PERCENT OF PEDESTRIAN FATALITIES'
+    table[1][1:-1] = parish_df['PedestrianFatalityPercentage']
+    table[1][-1] = percent_change(parish_df, 'PedestrianFatalityPercentage', years[-2], years[-1])
+
+    table[2][0] = 'NUMBER OF MOTORCYCLE FATALITIES'
+    table[2][1:-1] = parish_df['MotorcycleFatalities']
+    table[2][-1] = percent_change(parish_df, 'MotorcycleFatalities', years[-2], years[-1])
+
+    table[3][0] = 'PERCENT OF MOTORCYCLE FATALITIES'
+    table[3][1:-1] = parish_df['MotorcycleFatalityPercentage']
+    table[3][-1] = percent_change(parish_df, 'MotorcycleFatalityPercentage', years[-2], years[-1])
+
+    table[4][0] = 'NUMBER OF BICYCLE FATALITIES'
+    table[4][1:-1] = parish_df['BicycleFatalities']
+    table[4][-1] = percent_change(parish_df, 'BicycleFatalities', years[-2], years[-1])
+
+    table[5][0] = 'PERCENT OF BICYCLE FATALITIES'
+    table[5][1:-1] = parish_df['BicycleFatalityPercentage']
+    table[5][-1] = percent_change(parish_df, 'BicycleFatalityPercentage', years[-2], years[-1])
+
+    return table
