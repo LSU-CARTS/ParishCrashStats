@@ -343,3 +343,82 @@ def create_ped_motor_bike_df(engine, start_year, end_year):
     """
 
     return pd.read_sql_query(sql_query, engine)
+
+
+def create_cmv(engine, start_year, end_year):
+    sql_query = """
+    WITH cmv_fatal_crash AS (
+        SELECT c.[CrashYear] AS 'YEAR',
+            SUM(c.CrashCount) AS 'NUMBER OF CMV X CRASHES',
+            CONCAT(CAST(SUM(c.CrashCount)* 100. /MIN(s.tot_count) AS DECIMAL(10,2)), '%')  as 'PERCENT OF CMV X CRASHES',
+            c.ParishCode, 
+            c.Parish,
+            'Fatal' AS 'CrashType'
+        FROM FactCrash c 
+            left join 
+                (
+                    select ParishCode, Parish, [CrashYear], count(1) as 'tot_count'
+                    from FactCrash 
+                    where [CrashYear] BETWEEN 2018 AND 2022 
+                    AND CrashSeverityCode = '100' 
+                    GROUP BY ParishCode, Parish, [CrashYear]
+                ) as s 
+            on c.ParishCode = s.ParishCode and c.CrashYear = s.CrashYear --and c.Parish = s.Parish
+        WHERE c.[CrashYear] BETWEEN 2018 AND 2022
+        AND CrashSeverityCMVCode = '100'
+        GROUP BY c.ParishCode, c.Parish, c.[CrashYear]
+        
+        ),
+        cmv_injury_crash AS (
+        SELECT c.[CrashYear] AS 'YEAR',
+            COUNT (*) AS 'NUMBER OF CMV X CRASHES',
+            CONCAT(CAST(SUM(c.CrashCount)* 100. /MIN(s.tot_count) AS DECIMAL(10,2)), '%')  as 'PERCENT OF CMV X CRASHES',
+            c.ParishCode, 
+            c.Parish,
+            'Injury' AS 'CrashType'
+        FROM FactCrash c 
+            join 
+                (
+                    select ParishCode, Parish, [CrashYear], count(1) as 'tot_count'
+                    from FactCrash 
+                    where [CrashYear] BETWEEN 2018 AND 2022 
+                    AND CrashSeverityCode IN ('101', '102', '103')
+                    GROUP BY ParishCode, Parish, [CrashYear]
+                ) as s 
+            on c.ParishCode = s.ParishCode and c.CrashYear = s.CrashYear
+        WHERE c.[CrashYear] BETWEEN 2018 AND 2022
+        AND CrashSeverityCMVCode IN ('101', '102', '103')
+        GROUP BY c.ParishCode, c.Parish, c.[CrashYear]
+        
+        ),
+        cmv_pdo_crash AS (
+        SELECT c.[CrashYear] AS 'YEAR',
+            COUNT (*) AS 'NUMBER OF CMV X CRASHES',
+            CONCAT(CAST(SUM(c.CrashCount)* 100. /MIN(s.tot_count) AS DECIMAL(10,2)), '%')  as 'PERCENT OF CMV X CRASHES',
+            c.ParishCode, 
+            c.Parish,
+            'PDO' AS 'CrashType'
+        FROM FactCrash c 
+            join 
+                (
+                    select ParishCode, Parish, [CrashYear], count(1) as 'tot_count'
+                    from FactCrash 
+                    where [CrashYear] BETWEEN 2018 AND 2022 
+                    AND CrashSeverityCode = '104' 
+                    GROUP BY ParishCode, Parish, [CrashYear]
+                ) as s 
+            on c.ParishCode = s.ParishCode and c.CrashYear = s.CrashYear
+        WHERE c.[CrashYear] BETWEEN 2018 AND 2022
+        AND CrashSeverityCMVCode = '104'
+        GROUP BY c.ParishCode, c.Parish, c.[CrashYear]
+        )
+        
+        SELECT * FROM cmv_fatal_crash
+        UNION ALL
+        SELECT * FROM cmv_injury_crash
+        UNION ALL
+        SELECT * FROM cmv_pdo_crash
+        ORDER BY 'CrashType', Parish ASC, 'YEAR' ASC;
+    """
+
+    return pd.read_sql_query(sql_query,engine)
