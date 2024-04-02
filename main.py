@@ -137,7 +137,7 @@ def create_pdf(filename, title, table1, table2, table3, table4, table5, table6, 
 
     # Append text at the end
     additional_text = ('Note: The percent change of NaN (not a number) represents when a percent change between '
-                       'two years cannot be computed; i.e., when the penultimate year has a value of zero.')
+                       'two years cannot be computed.')
     additional_style = ParagraphStyle(name='AdditionalText', parent=styles['Normal'], leftIndent=40, rightIndent=40)
     additional_paragraph = Paragraph(additional_text, additional_style)
     elements.append(additional_paragraph)
