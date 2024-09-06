@@ -15,7 +15,7 @@ def percent_change(df, col, penult_year, last_year):
         except TypeError:
             return np.nan
     except ZeroDivisionError:
-        return '\u221e'
+        return 'NaN'
 
 
 def create_licensed_driver_table(parish_df, parish, years):
@@ -32,6 +32,10 @@ def create_licensed_driver_table(parish_df, parish, years):
     for i in range(1, 4):
         table[i][1:-1] = parish_df[table[i][0]]
         table[i][-1] = percent_change(parish_df, table[i][0], years[-2], years[-1])
+
+    for row in range(1, 3):
+        for column in range(1, len(years) + 1):
+            table[row][column] = "{:,}".format(table[row][column])
 
     return table
 
@@ -86,6 +90,10 @@ def create_total_crash_table(parish_df, years):
 
         index += 4
 
+    for row in [0, 1, 4, 5, 8]:
+        for column in range(1, len(years) + 1):
+            table[row][column] = "{:,}".format(table[row][column])
+
     return table
 
 
@@ -130,6 +138,10 @@ def create_fat_and_injury_table(parish_df, years):
             # Blank line in table
             table[index + 2][:] = ''
             index += 3
+
+    for row in [0, 1, 3, 4]:
+        for column in range(1, len(years) + 1):
+            table[row][column] = "{:,}".format(table[row][column])
 
     return table
 
@@ -178,6 +190,10 @@ def create_cost_estimate_table(parish_df, years):
     table[1][0] = 'ESTIMATED COSTS OF TRAFFIC CRASHES PER LICENSED DRIVER'
     table[1][1:-1] = parish_df['COST PER LICENSED DRIVER']
     table[1][-1] = percent_change(parish_df, 'COST PER LICENSED DRIVER', years[-2], years[-1])
+
+    for row in [0, 1]:
+        for column in range(1, len(years) + 1):
+            table[row][column] = "${:,}".format(table[row][column])
 
     return table
 
@@ -229,7 +245,7 @@ def create_alc_crash_table(parish_df, years):
         table[index][1:-1] = crash_type_df['NUMBER OF ALCOHOL-RELATED X CRASHES']
         table[index][-1] = percent_change(crash_type_df, 'NUMBER OF ALCOHOL-RELATED X CRASHES', years[-2], years[-1])
 
-        table[index + 1][0] = 'PERCENT OF ALCOHOL-RELATED FATALITY CRASHES'
+        table[index + 1][0] = f'PERCENT OF ALCOHOL-RELATED {crash_type} CRASHES'
         table[index + 1][1:-1] = crash_type_df['PERCENT OF ALCOHOL-RELATED X CRASHES']
         table[index + 1][-1] = percent_change(crash_type_df, 'PERCENT OF ALCOHOL-RELATED X CRASHES', years[-2], years[-1])
 
@@ -247,6 +263,10 @@ def create_alc_crash_table(parish_df, years):
             index += 2
         else:
             break
+
+    for row in [0, 2, 4, 6]:
+        for column in range(1, len(years) + 1):
+            table[row][column] = "{:,}".format(table[row][column])
 
     return table
 
@@ -280,6 +300,10 @@ def create_dwi_arrests_table(parish_df, years):
     table[2][0] = 'PERCENT OF DWI ARRESTS INVOLVING DRIVERS AGES 15-24'
     table[2][1:-1] = parish_df['PERCENT OF DWI ARRESTS INVOLVING DRIVERS AGES 15-24']
     table[2][-1] = percent_change(parish_df, 'PERCENT OF DWI ARRESTS INVOLVING DRIVERS AGES 15-24', years[-2], years[-1])
+
+    for row in [0, 1]:
+        for column in range(1, len(years) + 1):
+            table[row][column] = "{:,}".format(table[row][column])
 
     return table
 
@@ -330,5 +354,92 @@ def create_ped_motor_bike_table(parish_df, years):
     table[5][0] = 'PERCENT OF BICYCLE FATALITIES'
     table[5][1:-1] = parish_df['BicycleFatalityPercentage']
     table[5][-1] = percent_change(parish_df, 'BicycleFatalityPercentage', years[-2], years[-1])
+
+    for row in [0, 2, 4]:
+        for column in range(1, len(years) + 1):
+            table[row][column] = "{:,}".format(table[row][column])
+
+    return table
+
+
+def create_trains_table(parish_df, years):
+    table = [[0 for _ in range(len(years) + 2)] for _ in range(6)]
+
+    # Merge with the original dataframe to identify missing years
+    missing_years_df = pd.DataFrame({'YEAR': years})
+    parish_df = pd.merge(missing_years_df, parish_df, on='YEAR', how='left')
+
+    # Replace NaN values in numerical columns with 0
+    freq_cols = ['TOTAL TRAIN CRASHES', 'NUMBER OF TRAIN FATALITIES', 'NUMBER OF TRAIN INJURIES']
+
+    rel_freq_cols = ['PERCENT TRAIN CRASHES', 'PERCENT OF TRAIN FATALITIES', 'PERCENT OF TRAIN INJURIES']
+
+    parish_df[freq_cols] = parish_df[freq_cols].fillna(0)
+    parish_df[rel_freq_cols] = parish_df[rel_freq_cols].fillna('0.00%')
+
+    table[0][0] = 'NUMBER OF TRAIN CRASHES'
+    table[0][1:-1] = parish_df['TOTAL TRAIN CRASHES']
+    table[0][-1] = percent_change(parish_df, 'TOTAL TRAIN CRASHES', years[-2], years[-1])
+
+    table[1][0] = 'PERCENT OF TRAIN CRASHES'
+    table[1][1:-1] = parish_df['PERCENT TRAIN CRASHES']
+    table[1][-1] = percent_change(parish_df, 'PERCENT TRAIN CRASHES', years[-2], years[-1])
+
+    table[2][0] = 'NUMBER OF TRAIN FATALITIES'
+    table[2][1:-1] = parish_df['NUMBER OF TRAIN FATALITIES']
+    table[2][-1] = percent_change(parish_df, 'NUMBER OF TRAIN FATALITIES', years[-2], years[-1])
+
+    table[3][0] = 'PERCENT OF TRAIN FATALITIES'
+    table[3][1:-1] = parish_df['PERCENT OF TRAIN FATALITIES']
+    table[3][-1] = percent_change(parish_df, 'PERCENT OF TRAIN FATALITIES', years[-2], years[-1])
+
+    table[4][0] = 'NUMBER OF TRAIN INJURIES'
+    table[4][1:-1] = parish_df['NUMBER OF TRAIN INJURIES']
+    table[4][-1] = percent_change(parish_df, 'NUMBER OF TRAIN INJURIES', years[-2], years[-1])
+
+    table[5][0] = 'PERCENT OF TRAIN INJURIES'
+    table[5][1:-1] = parish_df['PERCENT OF TRAIN INJURIES']
+    table[5][-1] = percent_change(parish_df, 'PERCENT OF TRAIN INJURIES', years[-2], years[-1])
+
+    for row in [0, 2, 4]:
+        for column in range(1, len(years) + 1):
+            table[row][column] = "{:,}".format(table[row][column])
+
+    return table
+
+
+def create_com_mot_veh_table(parish_df, years):
+    table = [[0 for _ in range(len(years) + 2)] for _ in range(6)]
+
+    types_of_crashes = ['Fatal', 'Injury', 'PDO']
+    index = 0
+
+    for crash_type in types_of_crashes:
+        crash_type_df = parish_df[parish_df['CrashType'] == crash_type]
+
+        # Merge with the original dataframe to identify missing years
+        missing_years_df = pd.DataFrame({'YEAR': years})
+        crash_type_df = pd.merge(missing_years_df, crash_type_df, on='YEAR', how='left')
+
+        # Replace NaN values in numerical columns with 0
+        crash_type_df['NUMBER OF CMV X CRASHES'] = crash_type_df['NUMBER OF CMV X CRASHES'].fillna(0)
+        crash_type_df['PERCENT OF CMV X CRASHES'] = crash_type_df['PERCENT OF CMV X CRASHES'].fillna('0.00%')
+
+        table[index][0] = f'NUMBER OF CMV {crash_type.upper()} CRASHES'
+        table[index][1:-1] = crash_type_df['NUMBER OF CMV X CRASHES']
+        table[index][-1] = percent_change(crash_type_df, 'NUMBER OF CMV X CRASHES', years[-2], years[-1])
+
+        table[index + 1][0] = f'PERCENT OF CMV {crash_type.upper()} CRASHES'
+        table[index + 1][1:-1] = crash_type_df['PERCENT OF CMV X CRASHES']
+        table[index + 1][-1] = percent_change(crash_type_df, 'PERCENT OF CMV X CRASHES', years[-2], years[-1])
+
+        if types_of_crashes == 'PDO':
+            break
+        else:
+            index += 2
+
+    for row in [0, 2, 4]:
+        for column in range(1, len(years) + 1):
+            table[row][column] = "{:,}".format(table[row][column])
 
     return table
