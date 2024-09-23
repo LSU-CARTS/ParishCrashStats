@@ -39,9 +39,20 @@ def sql_connection():
 
     return create_engine('mssql+pyodbc://', creator=lambda: conn_db)
 
-
+current_page_number = 58
 # Function to create PDF
 def create_pdf(filename, title, table1, table2, table3, table4, table5, table6, table7, table8, table9, table10):
+    # Function to draw the page number at the bottom right
+    def add_page_number(canvas, doc):
+        page_number = current_page_number  # Start page numbering at 58
+        text = f"{page_number}"
+        print(text)
+        canvas.saveState()
+        canvas.setFont('Helvetica', 8)
+        # Add page number in bottom right corner
+        canvas.drawRightString(580, 10, text)
+        canvas.restoreState()
+
     doc = SimpleDocTemplate(filename, pagesize=letter, leftMargin=0.5, rightMargin=0.5, topMargin=0.5, bottomMargin=0.5)
     elements = []
 
@@ -142,7 +153,7 @@ def create_pdf(filename, title, table1, table2, table3, table4, table5, table6, 
     additional_paragraph = Paragraph(additional_text, additional_style)
     elements.append(additional_paragraph)
 
-    doc.build(elements)
+    doc.build(elements, onFirstPage=add_page_number, onLaterPages=add_page_number)
 
 
 if __name__ == '__main__':
@@ -408,6 +419,7 @@ if __name__ == '__main__':
         parish_9 = state_dict[parish]['trains']
         parish_10 = state_dict[parish]['com_mot_veh']
         create_pdf(f'Parish_PDFs/{parish}.pdf', parish, parish_1, parish_2, parish_3, parish_4, parish_5, parish_6, parish_7, parish_8, parish_9, parish_10)
+        current_page_number += 1
 
     # Initialize PDF merger
     pdf_merger = PdfMerger()
